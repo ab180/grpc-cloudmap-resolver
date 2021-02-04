@@ -19,6 +19,10 @@ import (
 const (
 	Scheme = "cloudmap"
 	Target = Scheme + ":///"
+
+	HealthStatusFilterAll       = servicediscovery.HealthStatusFilterAll
+	HealthStatusFilterHealthy   = servicediscovery.HealthStatusFilterHealthy
+	HealthStatusFilterUnhealthy = servicediscovery.HealthStatusFilterUnhealthy
 )
 
 type Config struct {
@@ -27,9 +31,9 @@ type Config struct {
 	Namespace string
 	Service   string
 
-	HealthStatusFilter string        // default: ALL
+	HealthStatusFilter string        // default: HEALTHY
 	RefreshInterval    time.Duration // default: 30s
-	MaxAddrs           int64         // default: 10
+	MaxAddrs           int64         // default: 100
 }
 
 func NewBuilder(c Config) (resolver.Builder, error) {
@@ -43,13 +47,13 @@ func NewBuilder(c Config) (resolver.Builder, error) {
 		return nil, errors.New("service is required")
 	}
 	if c.HealthStatusFilter == "" {
-		c.HealthStatusFilter = servicediscovery.HealthStatusFilterAll
+		c.HealthStatusFilter = HealthStatusFilterHealthy
 	}
 	if c.RefreshInterval == 0 {
 		c.RefreshInterval = 30 * time.Second
 	}
 	if c.MaxAddrs == 0 {
-		c.MaxAddrs = 10
+		c.MaxAddrs = 100
 	}
 	return &cmBuilder{
 		config: c,
