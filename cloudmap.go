@@ -70,14 +70,13 @@ func (c *cmBuilder) Scheme() string {
 
 func (c *cmBuilder) Build(_ resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
 	r := &cmResolver{
+		mu: &sync.RWMutex{},
+
 		logger: grpclog.Component(c.Scheme()),
 
 		cc: cc,
 
-		wg:   &sync.WaitGroup{},
-		stop: make(chan struct{}),
-		now:  make(chan struct{}),
-		tick: time.NewTicker(c.config.RefreshInterval),
+		ticker: time.NewTicker(c.config.RefreshInterval),
 
 		sd: servicediscovery.New(c.config.Session),
 
@@ -93,14 +92,14 @@ func (c *cmBuilder) Build(_ resolver.Target, cc resolver.ClientConn, _ resolver.
 }
 
 type cmResolver struct {
+	mu       *sync.RWMutex
+	isClosed bool
+
 	logger grpclog.LoggerV2
 
 	cc resolver.ClientConn
 
-	wg   *sync.WaitGroup
-	stop chan struct{}
-	now  chan struct{}
-	tick *time.Ticker
+	ticker *time.Ticker
 
 	sd                 *servicediscovery.ServiceDiscovery
 	healthStatusFilter string
@@ -109,25 +108,14 @@ type cmResolver struct {
 	service            string
 }
 
-func (c *cmResolver) watch() {
-	c.wg.Add(1)
-	defer c.wg.Done()
-	defer c.tick.Stop()
+func (c *cmResolver) ResolveNow(resolver.ResolveNowOptions) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 
-loop:
-	for {
-		select {
-		case <-c.stop:
-			break loop
-		case <-c.tick.C:
-			c.cc.UpdateState(resolver.State{Addresses: c.discover()})
-		case <-c.now:
-			c.cc.UpdateState(resolver.State{Addresses: c.discover()})
-		}
+	if c.isClosed {
+		return
 	}
-}
 
-func (c *cmResolver) discover() []resolver.Address {
 	output, err := c.sd.DiscoverInstances(&servicediscovery.DiscoverInstancesInput{
 		HealthStatus:  aws.String(c.healthStatusFilter),
 		MaxResults:    aws.Int64(c.maxAddrs),
@@ -152,7 +140,7 @@ func (c *cmResolver) discover() []resolver.Address {
 			c.logger.Errorln(err.Error())
 		}
 		c.cc.ReportError(err)
-		return nil
+		return
 	}
 
 	addrs := make([]resolver.Address, 0, len(output.Instances))
@@ -160,19 +148,26 @@ func (c *cmResolver) discover() []resolver.Address {
 		addrs = append(addrs, httpInstanceSummaryToAddr(instance))
 	}
 
-	return addrs
-}
-
-func (c *cmResolver) ResolveNow(resolver.ResolveNowOptions) {
-	select {
-	case c.now <- struct{}{}:
-	default:
-	}
+	c.cc.UpdateState(resolver.State{Addresses: addrs})
 }
 
 func (c *cmResolver) Close() {
-	close(c.stop)
-	c.wg.Wait()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.isClosed {
+		return
+	}
+
+	c.isClosed = true
+	c.ticker.Stop()
+}
+
+func (c *cmResolver) watch() {
+	for {
+		c.ResolveNow(resolver.ResolveNowOptions{})
+		<-c.ticker.C
+	}
 }
 
 func httpInstanceSummaryToAddr(s *servicediscovery.HttpInstanceSummary) resolver.Address {
