@@ -20,30 +20,26 @@ import (
 	"log"
 	"time"
 
-	cloudmap "github.com/KimMachineGun/grpc-cloudmap-resolver"
-
 	"google.golang.org/grpc"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	cloudmap "github.com/KimMachineGun/grpc-cloudmap-resolver"
 )
 
 func main() {
-	builder, err := cloudmap.NewBuilder(cloudmap.Config{
-		Session:         session.Must(session.NewSession()),
-		Namespace:       "grpc-servers",
-		Service:         "ab-service",
-		RefreshInterval: 15 * time.Second,
-	})
-	if err != nil {
-		log.Fatal("cannot create a cloudmap resolver")
-	}
+	// use custom aws session for cloudmap api
+	// cloudmap.UseSession(sess)
 
 	conn, err := grpc.Dial(
-		cloudmap.Target,
+		// you can use target string directly
+		// "cloudmap://grpc-servers/ab-service?refreshInterval=15s"
+		cloudmap.BuildTarget(cloudmap.Config{
+			Namespace:       "grpc-servers",
+			Service:         "ab-service",
+			RefreshInterval: 15 * time.Second,
+		}),
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`),
-		grpc.WithResolvers(builder),
 	)
 	if err != nil {
 		log.Fatal("cannot create a grpc client connection")
