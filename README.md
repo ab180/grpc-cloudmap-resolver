@@ -18,7 +18,6 @@ package main
 
 import (
 	"log"
-	"time"
 
 	"google.golang.org/grpc"
 
@@ -26,17 +25,14 @@ import (
 )
 
 func main() {
-	// use custom aws session for cloudmap api
-	// cloudmap.UseSession(sess)
+	// register custom builder
+	// cloudmap.Register(
+	// 	cloudmap.WithSession(your_session),
+	// 	cloudmap.WithRefreshInterval(1 * time.Minute),
+	// )
 
 	conn, err := grpc.Dial(
-		// you can use target string directly
-		// "cloudmap://grpc-servers/ab-service?refreshInterval=15s"
-		cloudmap.BuildTarget(cloudmap.Config{
-			Namespace:       "grpc-servers",
-			Service:         "ab-service",
-			RefreshInterval: 15 * time.Second,
-		}),
+		cloudmap.BuildTarget("your-namespace", "your-service"),
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
 		grpc.WithDefaultServiceConfig(`{"loadBalancingPolicy":"round_robin"}`),

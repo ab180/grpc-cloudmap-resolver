@@ -25,10 +25,10 @@ type resolver struct {
 	ticker *time.Ticker
 
 	sd                 *servicediscovery.ServiceDiscovery
-	healthStatusFilter string
-	maxAddrs           int64
 	namespace          string
 	service            string
+	healthStatusFilter string
+	maxResults         int64
 }
 
 func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
@@ -40,10 +40,10 @@ func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
 	}
 
 	output, err := c.sd.DiscoverInstances(&servicediscovery.DiscoverInstancesInput{
-		HealthStatus:  aws.String(c.healthStatusFilter),
-		MaxResults:    aws.Int64(c.maxAddrs),
 		NamespaceName: aws.String(c.namespace),
 		ServiceName:   aws.String(c.service),
+		HealthStatus:  aws.String(c.healthStatusFilter),
+		MaxResults:    aws.Int64(c.maxResults),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {

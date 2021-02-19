@@ -11,17 +11,36 @@ import (
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
 )
 
-func init() {
-	grpcresolver.Register(&builder{})
-}
+const (
+	Scheme = "cloudmap"
 
-// UseSession registers new builder with given session.
-func UseSession(sess *session.Session) {
-	grpcresolver.Register(&builder{sess: sess})
+	HealthStatusFilterAll       = servicediscovery.HealthStatusFilterAll
+	HealthStatusFilterHealthy   = servicediscovery.HealthStatusFilterHealthy
+	HealthStatusFilterUnhealthy = servicediscovery.HealthStatusFilterUnhealthy
+)
+
+func init() {
+	Register()
 }
 
 type builder struct {
-	sess *session.Session
+	sess               *session.Session // default: session.NewSession()
+	healthStatusFilter string           // default: HEALTHY
+	maxResults         int64            // default: 100
+	refreshInterval    time.Duration    // default: 30s
+}
+
+// Register builds builder with given opts and register it to the resolver map.
+func Register(opts ...func(*builder)) {
+	b := &builder{
+		healthStatusFilter: HealthStatusFilterHealthy,
+		maxResults:         100,
+		refreshInterval:    30 * time.Second,
+	}
+	for _, opt := range opts {
+		opt(b)
+	}
+	grpcresolver.Register(b)
 }
 
 func (b *builder) Scheme() string {
@@ -29,7 +48,7 @@ func (b *builder) Scheme() string {
 }
 
 func (b *builder) Build(t grpcresolver.Target, cc grpcresolver.ClientConn, _ grpcresolver.BuildOptions) (grpcresolver.Resolver, error) {
-	c, err := configFromTarget(t)
+	cmT, err := parseTarget(t)
 	if err != nil {
 		return nil, err
 	}
@@ -49,14 +68,13 @@ func (b *builder) Build(t grpcresolver.Target, cc grpcresolver.ClientConn, _ grp
 
 		cc: cc,
 
-		ticker: time.NewTicker(c.RefreshInterval),
+		ticker: time.NewTicker(b.refreshInterval),
 
-		sd: servicediscovery.New(b.sess),
-
-		healthStatusFilter: c.HealthStatusFilter,
-		maxAddrs:           c.MaxAddrs,
-		namespace:          c.Namespace,
-		service:            c.Service,
+		sd:                 servicediscovery.New(sess),
+		namespace:          cmT.namespace,
+		service:            cmT.service,
+		healthStatusFilter: b.healthStatusFilter,
+		maxResults:         b.maxResults,
 	}
 
 	go r.watch()
