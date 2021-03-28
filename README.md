@@ -10,7 +10,6 @@ using [AWS Cloud Map](https://aws.amazon.com/cloud-map/).
 
 ```shell
 go get github.com/KimMachineGun/grpc-cloudmap-resolver
-
 ```
 
 ## Example
