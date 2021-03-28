@@ -31,6 +31,17 @@ type builder struct {
 }
 
 // Register builds builder with given opts and register it to the resolver map.
+// If you don't give any options, the builder will be registered with default options listed below.
+//
+// The default builder was already registered by the init function,
+// so you don't need to call this function to register the default builder.
+//
+// Default Options:
+//	Session: session.NewSession()
+//	HealthStatusFilter: HealthStatusFilterHealthy
+//	MaxResults: 100
+//	RefreshInterval: 30s
+//
 func Register(opts ...Opt) {
 	b := &builder{
 		healthStatusFilter: HealthStatusFilterHealthy,
