@@ -66,9 +66,9 @@ func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
 		return
 	}
 
-	addrs := make([]grpcresolver.Address, 0, len(output.Instances))
-	for _, instance := range output.Instances {
-		addrs = append(addrs, httpInstanceSummaryToAddr(instance))
+	addrs := make([]grpcresolver.Address, len(output.Instances))
+	for i, instance := range output.Instances {
+		addrs[i] = httpInstanceSummaryToAddr(instance)
 	}
 
 	c.cc.UpdateState(grpcresolver.State{Addresses: addrs})
@@ -94,15 +94,13 @@ func (c *resolver) watch() {
 }
 
 func httpInstanceSummaryToAddr(s *servicediscovery.HttpInstanceSummary) grpcresolver.Address {
-	ip := s.Attributes["AWS_INSTANCE_IPV4"]
-	port := s.Attributes["AWS_INSTANCE_PORT"]
 	attrs := attributes.New()
 	for k, v := range s.Attributes {
 		attrs = attrs.WithValues(k, v)
 	}
 
 	return grpcresolver.Address{
-		Addr:       fmt.Sprintf("%s:%s", *ip, *port),
+		Addr:       fmt.Sprintf("%s:%s", *s.Attributes["AWS_INSTANCE_IPV4"], *s.Attributes["AWS_INSTANCE_PORT"]),
 		Attributes: attrs,
 	}
 }

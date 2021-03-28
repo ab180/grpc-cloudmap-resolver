@@ -6,25 +6,27 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 )
 
-func WithSession(sess *session.Session) func(*builder) {
+type Opt func(*builder)
+
+func WithSession(sess *session.Session) Opt {
 	return func(b *builder) {
 		b.sess = sess
 	}
 }
 
-func WithHealthStatusFilter(healthStatusFilter string) func(*builder) {
+func WithHealthStatusFilter(healthStatusFilter string) Opt {
 	return func(b *builder) {
 		b.healthStatusFilter = healthStatusFilter
 	}
 }
 
-func WithMaxResults(maxResults int64) func(*builder) {
+func WithMaxResults(maxResults int64) Opt {
 	return func(b *builder) {
 		b.maxResults = maxResults
 	}
 }
 
-func WithRefreshInterval(refreshInterval time.Duration) func(*builder) {
+func WithRefreshInterval(refreshInterval time.Duration) Opt {
 	return func(b *builder) {
 		b.refreshInterval = refreshInterval
 	}

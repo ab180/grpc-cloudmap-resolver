@@ -31,7 +31,7 @@ type builder struct {
 }
 
 // Register builds builder with given opts and register it to the resolver map.
-func Register(opts ...func(*builder)) {
+func Register(opts ...Opt) {
 	b := &builder{
 		healthStatusFilter: HealthStatusFilterHealthy,
 		maxResults:         100,
