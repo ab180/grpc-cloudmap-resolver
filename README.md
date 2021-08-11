@@ -1,6 +1,6 @@
 # AWS Cloud Map Resolver for [grpc-go](https://github.com/grpc/grpc-go)
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/KimMachineGun/grpc-cloudmap-resolver.svg)](https://pkg.go.dev/github.com/KimMachineGun/grpc-cloudmap-resolver)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ab180/grpc-cloudmap-resolver.svg)](https://pkg.go.dev/github.com/ab180/grpc-cloudmap-resolver)
 
 **grpc-cloudmap-resolver** is an implementation
 of [`grpc-go.Resolver`](https://pkg.go.dev/google.golang.org/grpc/resolver#Resolver)
@@ -9,12 +9,12 @@ using [AWS Cloud Map](https://aws.amazon.com/cloud-map/).
 ## Installation
 
 ```shell
-go get github.com/KimMachineGun/grpc-cloudmap-resolver
+go get github.com/ab180/grpc-cloudmap-resolver
 ```
 
 ## Example
 
-See [godoc](https://pkg.go.dev/github.com/KimMachineGun/grpc-cloudmap-resolver) for more details.
+See [godoc](https://pkg.go.dev/github.com/ab180/grpc-cloudmap-resolver) for more details.
 
 ```go
 package main
@@ -24,7 +24,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	cloudmap "github.com/KimMachineGun/grpc-cloudmap-resolver"
+	cloudmap "github.com/ab180/grpc-cloudmap-resolver"
 )
 
 func main() {

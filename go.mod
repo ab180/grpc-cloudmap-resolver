@@ -1,4 +1,4 @@
-module github.com/KimMachineGun/grpc-cloudmap-resolver
+module github.com/ab180/grpc-cloudmap-resolver
 
 go 1.14
 
