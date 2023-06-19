@@ -94,9 +94,9 @@ func (c *resolver) watch() {
 }
 
 func httpInstanceSummaryToAddr(s *servicediscovery.HttpInstanceSummary) grpcresolver.Address {
-	attrs := attributes.New()
+	var attrs *attributes.Attributes
 	for k, v := range s.Attributes {
-		attrs = attrs.WithValues(k, v)
+		attrs = attrs.WithValue(k, v)
 	}
 
 	return grpcresolver.Address{
