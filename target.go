@@ -21,11 +21,11 @@ type target struct {
 }
 
 func parseTarget(t grpcresolver.Target) (*target, error) {
-	if t.Scheme != Scheme {
+	if t.URL.Scheme != Scheme {
 		return nil, fmt.Errorf("unexpected scheme: %s", t.Scheme)
 	}
 
-	namespace, err := url.PathUnescape(t.Authority)
+	namespace, err := url.PathUnescape(t.URL.Host)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse namespace: %v", err)
 	}
@@ -33,7 +33,7 @@ func parseTarget(t grpcresolver.Target) (*target, error) {
 		return nil, errors.New("namespace is required")
 	}
 
-	service, err := url.PathUnescape(t.Endpoint)
+	service, err := url.PathUnescape(t.Endpoint())
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse service: %v", err)
 	}
