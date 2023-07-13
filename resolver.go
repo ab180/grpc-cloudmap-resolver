@@ -32,8 +32,11 @@ type resolver struct {
 }
 
 func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	locked := c.mu.TryLock()
+	if !locked { // already resolving
+		return
+	}
+	defer c.mu.Unlock()
 
 	if c.isClosed {
 		return
