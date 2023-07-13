@@ -1,6 +1,7 @@
 package cloudmap
 
 import (
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -65,7 +66,9 @@ func Test_parseTarget(t *testing.T) {
 			name: "unexpected scheme",
 			args: args{
 				t: grpcresolver.Target{
-					Scheme: "https",
+					URL: url.URL{
+						Scheme: "https",
+					},
 				},
 			},
 			wantErr: true,
@@ -74,7 +77,9 @@ func Test_parseTarget(t *testing.T) {
 			name: "empty namespace",
 			args: args{
 				t: grpcresolver.Target{
-					Scheme: "https",
+					URL: url.URL{
+						Scheme: Scheme,
+					},
 				},
 			},
 			wantErr: true,
@@ -83,8 +88,10 @@ func Test_parseTarget(t *testing.T) {
 			name: "empty service",
 			args: args{
 				t: grpcresolver.Target{
-					Scheme:    Scheme,
-					Authority: "test-namespace",
+					URL: url.URL{
+						Scheme: Scheme,
+						Host:   "test-namespace",
+					},
 				},
 			},
 			wantErr: true,
@@ -93,9 +100,11 @@ func Test_parseTarget(t *testing.T) {
 			name: "normal",
 			args: args{
 				t: grpcresolver.Target{
-					Scheme:    Scheme,
-					Authority: "test-namespace",
-					Endpoint:  "test-service",
+					URL: url.URL{
+						Scheme: Scheme,
+						Host:   "test-namespace",
+						Path:   "test-service",
+					},
 				},
 			},
 			want: &target{
@@ -107,9 +116,11 @@ func Test_parseTarget(t *testing.T) {
 			name: "with slash",
 			args: args{
 				t: grpcresolver.Target{
-					Scheme:    Scheme,
-					Authority: "test-namespace",
-					Endpoint:  "test/service",
+					URL: url.URL{
+						Scheme: Scheme,
+						Host:   "test-namespace",
+						Path:   "test/service",
+					},
 				},
 			},
 			want: &target{
@@ -121,9 +132,11 @@ func Test_parseTarget(t *testing.T) {
 			name: "with whitespace",
 			args: args{
 				t: grpcresolver.Target{
-					Scheme:    Scheme,
-					Authority: "test-namespace",
-					Endpoint:  "test%20service",
+					URL: url.URL{
+						Scheme: Scheme,
+						Host:   "test-namespace",
+						Path:   "test%20service",
+					},
 				},
 			},
 			want: &target{
