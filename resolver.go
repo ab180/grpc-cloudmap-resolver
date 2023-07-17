@@ -1,6 +1,7 @@
 package cloudmap
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -14,34 +15,35 @@ import (
 	"github.com/aws/aws-sdk-go/service/servicediscovery"
 )
 
+type serviceDiscovery interface {
+	DiscoverInstances(input *servicediscovery.DiscoverInstancesInput) (*servicediscovery.DiscoverInstancesOutput, error)
+}
+
 type resolver struct {
-	mu       *sync.RWMutex
-	isClosed bool
-
 	logger grpclog.LoggerV2
+	cc     grpcresolver.ClientConn
 
-	cc grpcresolver.ClientConn
-
-	ticker *time.Ticker
-
-	sd                 *servicediscovery.ServiceDiscovery
+	sd                 serviceDiscovery
 	namespace          string
 	service            string
 	healthStatusFilter string
 	maxResults         int64
+
+	ctx        context.Context
+	cancel     context.CancelFunc
+	ticker     *time.Ticker
+	resolveCmd chan struct{}
+	wg         sync.WaitGroup
 }
 
 func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
-	locked := c.mu.TryLock()
-	if !locked { // already resolving
-		return
+	select {
+	case c.resolveCmd <- struct{}{}:
+	default:
 	}
-	defer c.mu.Unlock()
+}
 
-	if c.isClosed {
-		return
-	}
-
+func (c *resolver) cloudmapLookup() (*grpcresolver.State, error) {
 	output, err := c.sd.DiscoverInstances(&servicediscovery.DiscoverInstancesInput{
 		NamespaceName: aws.String(c.namespace),
 		ServiceName:   aws.String(c.service),
@@ -65,8 +67,7 @@ func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
 		} else {
 			c.logger.Errorln(err.Error())
 		}
-		c.cc.ReportError(err)
-		return
+		return nil, err
 	}
 
 	addrs := make([]grpcresolver.Address, len(output.Instances))
@@ -74,25 +75,37 @@ func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
 		addrs[i] = httpInstanceSummaryToAddr(instance)
 	}
 
-	c.cc.UpdateState(grpcresolver.State{Addresses: addrs})
+	return &grpcresolver.State{Addresses: addrs}, nil
 }
 
 func (c *resolver) Close() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.isClosed {
-		return
-	}
-
-	c.isClosed = true
+	c.cancel()
 	c.ticker.Stop()
+	c.wg.Wait()
 }
 
-func (c *resolver) watch() {
+func (c *resolver) watcher() {
+	defer c.wg.Done()
+
 	for {
-		c.ResolveNow(grpcresolver.ResolveNowOptions{})
-		<-c.ticker.C
+		state, err := c.cloudmapLookup()
+		if err != nil {
+			c.cc.ReportError(err)
+		} else {
+			err = c.cc.UpdateState(*state)
+		}
+
+		if err != nil {
+			c.logger.Errorln(err.Error())
+			// wait for next iteration
+		}
+
+		select {
+		case <-c.ctx.Done():
+			return
+		case <-c.ticker.C:
+		case <-c.resolveCmd:
+		}
 	}
 }
 

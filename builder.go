@@ -1,7 +1,7 @@
 package cloudmap
 
 import (
-	"sync"
+	"context"
 	"time"
 
 	"google.golang.org/grpc/grpclog"
@@ -37,11 +37,11 @@ type builder struct {
 // so you don't need to call this function to register the default builder.
 //
 // Default Options:
+//
 //	Session: session.NewSession()
 //	HealthStatusFilter: HealthStatusFilterHealthy
 //	MaxResults: 100
 //	RefreshInterval: 30s
-//
 func Register(opts ...Opt) {
 	b := &builder{
 		healthStatusFilter: HealthStatusFilterHealthy,
@@ -72,23 +72,26 @@ func (b *builder) Build(t grpcresolver.Target, cc grpcresolver.ClientConn, _ grp
 		}
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	r := &resolver{
-		mu: &sync.RWMutex{},
-
 		logger: grpclog.Component(b.Scheme()),
 
 		cc: cc,
-
-		ticker: time.NewTicker(b.refreshInterval),
 
 		sd:                 servicediscovery.New(sess),
 		namespace:          cmT.namespace,
 		service:            cmT.service,
 		healthStatusFilter: b.healthStatusFilter,
 		maxResults:         b.maxResults,
+
+		ctx:        ctx,
+		cancel:     cancel,
+		ticker:     time.NewTicker(b.refreshInterval),
+		resolveCmd: make(chan struct{}, 1),
 	}
 
-	go r.watch()
+	r.wg.Add(1)
+	go r.watcher()
 
 	return r, nil
 }
