@@ -43,7 +43,7 @@ func (c *resolver) ResolveNow(grpcresolver.ResolveNowOptions) {
 	}
 }
 
-func (c *resolver) cloudmapLookup() (*grpcresolver.State, error) {
+func (c *resolver) lookupCloudmap() (*grpcresolver.State, error) {
 	output, err := c.sd.DiscoverInstances(&servicediscovery.DiscoverInstancesInput{
 		NamespaceName: aws.String(c.namespace),
 		ServiceName:   aws.String(c.service),
@@ -88,7 +88,7 @@ func (c *resolver) watcher() {
 	defer c.wg.Done()
 
 	for {
-		state, err := c.cloudmapLookup()
+		state, err := c.lookupCloudmap()
 		if err != nil {
 			c.cc.ReportError(err)
 		} else {
