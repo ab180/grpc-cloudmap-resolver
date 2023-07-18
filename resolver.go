@@ -96,7 +96,7 @@ func (c *resolver) watcher() {
 		}
 
 		if err != nil {
-			c.logger.Errorln(err.Error())
+			c.logger.Errorln(err)
 			// wait for next iteration
 		}
 
