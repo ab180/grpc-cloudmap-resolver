@@ -22,7 +22,7 @@ type target struct {
 
 func parseTarget(t grpcresolver.Target) (*target, error) {
 	if t.URL.Scheme != Scheme {
-		return nil, fmt.Errorf("unexpected scheme: %s", t.Scheme)
+		return nil, fmt.Errorf("unexpected scheme: %s", t.URL.Scheme)
 	}
 
 	namespace, err := url.PathUnescape(t.URL.Host)
