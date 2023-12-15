@@ -4,5 +4,5 @@ go 1.14
 
 require (
 	github.com/aws/aws-sdk-go v1.44.284
-	google.golang.org/grpc v1.56.0
+	google.golang.org/grpc v1.60.0
 )
