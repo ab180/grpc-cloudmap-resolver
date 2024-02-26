@@ -4,7 +4,5 @@ go 1.14
 
 require (
 	github.com/aws/aws-sdk-go v1.49.3
-	golang.org/x/net v0.19.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20231212172506-995d672761c0 // indirect
-	google.golang.org/grpc v1.60.0
+	google.golang.org/grpc v1.62.0
 )
